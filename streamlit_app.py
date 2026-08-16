@@ -10,7 +10,7 @@ st.title("💰 夫婦共有の家計簿")
 # ==========================================
 st.markdown("### ✍️ 支出の入力はこちら")
 # ※ ここに後で作成したGoogleフォームのURLを入れてね！
-form_url = "https://forms.google.com/..." 
+form_url = "https://docs.google.com/spreadsheets/d/1-HoWSwmqq53N3xiyPty_O5JzX_o-dLzL2EElwMqSnMY/edit?usp=drivesdk"
 st.markdown(f"[＞＞ 支出入力フォームを開く]({form_url})")
 
 st.divider()
