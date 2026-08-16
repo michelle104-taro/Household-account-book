@@ -1,54 +1,41 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
+# ページ設定
 st.set_page_config(page_title="我が家の家計簿", page_icon="💰", layout="centered")
 st.title("💰 夫婦共有の家計簿")
 
-# Googleスプレッドシートへの接続設定（Secretsから自動読み込み）
-conn = st.connection("gsheets", type=GSheetsConnection)
+# ==========================================
+# 1. Googleフォームのリンクを設置（ここで入力してもらう）
+# ==========================================
+st.markdown("### ✍️ 支出の入力はこちら")
+# ※ ここに後で作成したGoogleフォームのURLを入れてね！
+form_url = "https://forms.google.com/..." 
+st.markdown(f"[＞＞ 支出入力フォームを開く]({form_url})")
+
+st.divider()
+
+# ==========================================
+# 2. スプレッドシートの読み込み（Secrets不要！）
+# ==========================================
+st.markdown("### 📋 最新の支出履歴")
+
+# 教えてくれたスプレッドシートのIDを使って、CSVダウンロード用のURLに変換
+# なぜそうなるのか？： pandasが直接読み込めるのは画面ではなくCSVデータだからだよ！
+SHEET_ID = "1-HoWSwmqq53N3xiyPty_O5JzX_o-dLzL2EElwMqSnMY"
+csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 try:
-    # 既存データの読み込み（ttl=0で最新データを毎回取得）
-    data = conn.read(ttl=0)
-    if data.empty:
-        data = pd.DataFrame(columns=["日付", "カテゴリ", "金額", "入力者", "メモ"])
-except Exception as e:
-    st.error("データの読み込みに失敗しました。Secretsの設定を確認してください。")
-    st.stop()
-
-# 支出入力フォーム
-with st.form("kakeibo_form", clear_on_submit=True):
-    date = st.date_input("日付")
-    category = st.selectbox("カテゴリ", ["食費", "日用品", "交際費", "固定費", "その他"])
-    amount = st.number_input("金額 (円)", min_value=0, step=100)
-    user = st.radio("入力者", ["夫", "妻"], horizontal=True)
-    memo = st.text_input("メモ")
+    # データを読み込む
+    df = pd.read_csv(csv_url)
     
-    submitted = st.form_submit_button("支出を記録する")
-
-if submitted:
-    if amount == 0:
-        st.warning("金額を1文字以上（1円以上）入力してください。")
+    # データが空じゃない場合、表として表示
+    if not df.empty:
+        # 最新の入力が上に来るように逆順にする
+        st.dataframe(df.iloc[::-1], use_container_width=True)
     else:
-        # 新しいデータの追加
-        new_row = pd.DataFrame([{
-            "日付": date.strftime("%Y-%m-%d"), 
-            "カテゴリ": category, 
-            "金額": amount, 
-            "入力者": user, 
-            "メモ": memo
-        }])
-        
-        updated_df = pd.concat([data, new_row], ignore_index=True)
-        
-        try:
-            conn.update(data=updated_df)
-            st.success("✨ 支出を記録しました！")
-            st.rerun()
-        except Exception as e:
-            st.error(f"保存に失敗しました: {e}")
+        st.info("まだデータがありません。")
 
-# 履歴表示（新しい順）
-st.subheader("📋 支出履歴")
-st.dataframe(data.iloc[::-1], use_container_width=True)
+except Exception as e:
+    st.error("スプレッドシートの読み込みに失敗しました。")
+    st.error("スプレッドシートの共有設定が「リンクを知っている全員（閲覧者）」になっているか確認してね！")
